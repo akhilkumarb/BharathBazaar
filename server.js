@@ -8,7 +8,7 @@ const path = require('path');
 const ejs = require('ejs');
 const all_products = require('./all_products');
 const { text } = require("body-parser");
-const crypto = require('crypto');
+const bcrypt = require("bcrypt");
 const cron = require('node-cron');
 
 //rest object
@@ -63,8 +63,7 @@ const usersSchema = new mongoose.Schema({
         unique: true
     },
     hash: String,
-    salt: String
-    , role: {
+    role: {
         type: Number,
         default: 0
     },
@@ -84,21 +83,14 @@ const usersSchema = new mongoose.Schema({
     }
 }, { timeStamps: true });
 
-usersSchema.methods.setPassword = function (password) {
 
 
-    this.salt = crypto.randomBytes(16).toString('hex');
 
-    this.hash = crypto.pbkdf2Sync(password, this.salt,
-        1000, 64, `sha512`).toString(`hex`);
+
+usersSchema.methods.validPassword = async function (password) {
+  return await bcrypt.compare(password, this.hash);
 };
 
-
-usersSchema.methods.validPassword = function (password) {
-    var hash = crypto.pbkdf2Sync(password,
-        this.salt, 1000, 64, `sha512`).toString(`hex`);
-    return this.hash === hash;
-};
 
 
 const users = new mongoose.model("users", usersSchema);
@@ -254,17 +246,16 @@ app.post("/register", async (req, res) => {
             res.redirect('/login');
         } else {
             try {
+                const hashPass = await bcrypt.hash(password,10);
                 const newusers = new users({
                     name,
                     email,
                     contact,
                     address,
+                    hash: hashPass,
                     pin,
                     role: 0,
                 });
-                newusers.password=password
-
-                newusers.setPassword(password); 
                 console.log("New users")
                 await newusers.save();
                 res.redirect("/login");

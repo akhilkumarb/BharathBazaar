@@ -6,7 +6,6 @@ const morgan = require("morgan");
 const colors = require("colors");
 const path = require('path');
 const ejs = require('ejs');
-const { log } = require("console");
 const all_products = require('./all_products');
 const { text } = require("body-parser");
 const crypto = require('crypto');
